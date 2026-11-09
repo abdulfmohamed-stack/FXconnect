@@ -1,0 +1,511 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>FXConnect Muse Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: phone (customer side) left, "behind the scenes" console right; stacks on narrow screens */
+:root{
+  --bg:#f3f1ec; --surface:#ffffff; --ink:#17201c; --muted:#5e6a64; --line:#dcd9d0;
+  --accent:#0f7a5c; --accent-soft:#e2f2ec; --warn:#a15c00; --warn-soft:#fbefdc; --bad:#b3261e;
+  --chat-bg:#ece5dc; --bubble-in:#ffffff; --bubble-out:#d6f7cf; --chat-ink:#111b21; --chat-muted:#667781;
+  --phone-shell:#1d2420; --header:#0f5a47; --header-ink:#ffffff; --card:#f7faf8; --code:#f4f2ed;
+  --f-display:"Bricolage Grotesque", "Manrope", system-ui, sans-serif;
+  --f-body:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1a201d; --ink:#e7ece9; --muted:#9aa6a0; --line:#2c3531;
+  --accent:#3fc59a; --accent-soft:#16352b; --warn:#f0b35a; --warn-soft:#3a2c14; --bad:#ff8a80;
+  --chat-bg:#0b141a; --bubble-in:#202c33; --bubble-out:#005c4b; --chat-ink:#e9edef; --chat-muted:#8696a0;
+  --phone-shell:#000000; --header:#1f2c34; --header-ink:#e9edef; --card:#17242b; --code:#161c19; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1a201d; --ink:#e7ece9; --muted:#9aa6a0; --line:#2c3531;
+  --accent:#3fc59a; --accent-soft:#16352b; --warn:#f0b35a; --warn-soft:#3a2c14; --bad:#ff8a80;
+  --chat-bg:#0b141a; --bubble-in:#202c33; --bubble-out:#005c4b; --chat-ink:#e9edef; --chat-muted:#8696a0;
+  --phone-shell:#000000; --header:#1f2c34; --header-ink:#e9edef; --card:#17242b; --code:#161c19; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+h1{font-family:var(--f-display);font-size:clamp(24px,3.2vw,34px);line-height:1.1;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--warn-soft);color:var(--warn);letter-spacing:.02em}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.stage{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.stage{grid-template-columns:minmax(0,1fr)}}
+
+/* phone */
+.phone{background:var(--phone-shell);border-radius:38px;padding:12px;box-shadow:0 20px 50px rgba(0,0,0,.18);max-width:390px;width:100%;justify-self:center}
+.screen{border-radius:28px;overflow:hidden;display:flex;flex-direction:column;height:720px;max-height:82vh;background:var(--chat-bg)}
+.statusbar{background:var(--header);color:var(--header-ink);font-size:11px;display:flex;justify-content:space-between;padding:8px 18px 2px;font-weight:600}
+.chathead{background:var(--header);color:var(--header-ink);display:flex;align-items:center;gap:10px;padding:8px 12px 10px}
+.av{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;color:#fff;
+  background:conic-gradient(from 200deg,#3b82f6,#8b5cf6,#ec4899,#f59e0b,#3b82f6)}
+.chathead .name{font-weight:700;font-size:15px;line-height:1.2}
+.chathead .st{font-size:11.5px;opacity:.8}
+.msgs{flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:6px;color:var(--chat-ink);
+  background-image:radial-gradient(color-mix(in srgb,var(--chat-muted) 18%,transparent) 1px,transparent 1px);background-size:18px 18px}
+.day{align-self:center;font-size:11px;background:var(--bubble-in);color:var(--chat-muted);padding:3px 10px;border-radius:8px;margin:4px 0}
+.b{max-width:88%;padding:7px 9px 5px;border-radius:10px;font-size:13.5px;line-height:1.42;box-shadow:0 1px .5px rgba(0,0,0,.13);word-wrap:break-word;animation:pop .18s ease-out}
+.b.in{align-self:flex-start;background:var(--bubble-in);border-top-left-radius:2px}
+.b.out{align-self:flex-end;background:var(--bubble-out);border-top-right-radius:2px}
+.b .t{display:block;text-align:right;font-size:10.5px;color:var(--chat-muted);margin-top:2px}
+.b.out .t::after{content:" ✓✓";color:#53bdeb}
+.b strong{font-weight:700}
+.tool{align-self:flex-start;font-size:11.5px;color:var(--chat-muted);display:flex;align-items:center;gap:6px;padding:2px 6px}
+.tool .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1s infinite}
+.tool.done .dot{animation:none}
+.typing{align-self:flex-start;background:var(--bubble-in);padding:10px 12px;border-radius:10px;display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--chat-muted);animation:bounce 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5}30%{transform:translateY(-4px);opacity:1}}
+@keyframes pulse{50%{opacity:.3}}
+@keyframes pop{from{transform:translateY(4px);opacity:.4}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.b,.typing i,.tool .dot{animation:none}}
+
+.offers{display:flex;flex-direction:column;gap:6px;margin:6px 0 2px}
+.offer{border:1px solid color-mix(in srgb,var(--chat-muted) 30%,transparent);border-radius:8px;padding:7px 8px;background:color-mix(in srgb,var(--bubble-in) 85%,var(--accent) 4%)}
+.offer .row1{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.offer .amt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.offer .meta{font-size:11.5px;color:var(--chat-muted)}
+.offer.best{border-color:var(--accent)}
+.tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12.5px;margin:6px 0;font-variant-numeric:tabular-nums}
+.kv dt{color:var(--chat-muted)} .kv dd{margin:0;text-align:right;font-weight:600}
+.code{font-family:var(--f-mono);font-size:22px;letter-spacing:.18em;text-align:center;padding:6px;border:1.5px dashed var(--accent);border-radius:8px;margin:6px 0;font-weight:500}
+.qr{display:flex;flex-wrap:wrap;gap:5px;padding:6px 10px 8px;justify-content:flex-end;background:var(--chat-bg)}
+.qr button{font:inherit;font-size:12px;font-weight:600;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 50%,transparent);background:var(--bubble-in);color:var(--accent);padding:5px 10px;cursor:pointer}
+.compose{display:flex;gap:6px;padding:6px 8px 10px;background:var(--chat-bg)}
+.compose input{flex:1;min-width:0;font:inherit;font-size:14px;border:none;border-radius:20px;padding:10px 14px;background:var(--bubble-in);color:var(--chat-ink)}
+.compose button{width:42px;height:42px;border-radius:50%;border:none;background:var(--header);color:#fff;cursor:pointer;flex:none;font-size:16px}
+
+/* console */
+.console{background:var(--surface);border:1px solid var(--line);border-radius:16px;min-width:0;display:flex;flex-direction:column}
+.tabs{display:flex;gap:2px;padding:8px 8px 0;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{font:inherit;font-weight:600;font-size:13px;background:none;border:none;color:var(--muted);padding:9px 12px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs .count{font-size:11px;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 7px;margin-left:4px}
+.panel{padding:16px;min-height:420px}
+.panel h2{font-family:var(--f-display);font-size:18px;margin:0 0 4px}
+.panel .lead{color:var(--muted);margin:0 0 14px;max-width:70ch}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;margin-bottom:14px}
+.flow span{padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.flow span.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+.flow b{color:var(--muted);font-weight:400}
+.log{display:flex;flex-direction:column;gap:10px}
+.entry{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.entry .eh{display:flex;justify-content:space-between;gap:10px;padding:7px 10px;background:var(--code);font-size:12px}
+.entry .fn{font-family:var(--f-mono);font-weight:500;color:var(--accent)}
+.entry .ms{color:var(--muted);font-variant-numeric:tabular-nums}
+.entry pre{margin:0;padding:8px 10px;font-family:var(--f-mono);font-size:11.5px;line-height:1.5;overflow-x:auto;white-space:pre;color:var(--ink)}
+.entry .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:6px 10px 0;font-weight:700}
+.empty{color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:22px;text-align:center}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;background:var(--code)}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.off{background:var(--code);color:var(--muted)}
+tr.hl td{background:var(--accent-soft)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kpi .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.kpi .v{font-family:var(--f-display);font-size:22px;font-variant-numeric:tabular-nums}
+.bookings{display:flex;flex-direction:column;gap:10px}
+.booking{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center}
+.booking .bt{font-weight:700}
+.booking .bm{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.redeem{display:flex;gap:6px;flex-wrap:wrap}
+.redeem input{font:inherit;font-family:var(--f-mono);width:110px;padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.note{font-size:12px;color:var(--muted);margin-top:14px;max-width:80ch}
+.scenarios{display:flex;flex-wrap:wrap;gap:8px}
+footer.foot{color:var(--muted);font-size:12px;max-width:90ch}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>FXConnect inside Muse, on WhatsApp</h1>
+      <p class="sub">The customer only ever talks to Muse in WhatsApp. Muse calls FXConnect to search 10 Toronto exchanges, compare cash you actually receive, lock the rate and issue a pickup code. The right panel shows what happens behind the chat.</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="badge">Simulation · sample exchanges and rates</span>
+      <button class="btn" id="restart">Restart demo</button>
+    </div>
+  </header>
+
+  <div class="stage">
+    <div class="phone" aria-label="WhatsApp conversation with Muse">
+      <div class="screen">
+        <div class="statusbar"><span id="clock">11:20</span><span>5G ▮▮▮</span></div>
+        <div class="chathead">
+          <div class="av" aria-hidden="true">M</div>
+          <div><div class="name">Muse</div><div class="st" id="status">AI assistant · FXConnect connected</div></div>
+        </div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="qr" id="qr"></div>
+        <form class="compose" id="compose">
+          <input id="input" autocomplete="off" placeholder="Message Muse" aria-label="Message Muse">
+          <button type="submit" aria-label="Send">➤</button>
+        </form>
+      </div>
+    </div>
+
+    <section class="console">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="log">Connector calls<span class="count" id="logCount">0</span></button>
+        <button role="tab" aria-selected="false" data-tab="msb">Exchange dashboard<span class="count" id="bkCount">0</span></button>
+        <button role="tab" aria-selected="false" data-tab="net">Network · 10 exchanges</button>
+        <button role="tab" aria-selected="false" data-tab="try">Try these</button>
+      </div>
+
+      <div class="panel" data-panel="log">
+        <h2>What Muse asks FXConnect</h2>
+        <p class="lead">Muse handles the conversation. Each step below is a tool call to the FXConnect connector and the data it returns.</p>
+        <div class="flow" id="flow">
+          <span data-step="find">find_exchanges</span><b>→</b><span data-step="compare">compare_rates</span><b>→</b><span data-step="cash">check_cash</span><b>→</b><span data-step="lock">lock_rate</span><b>→</b><span data-step="pickup">confirm_pickup</span>
+        </div>
+        <div class="log" id="log"><div class="empty">Send the first message in the chat. Calls appear here as Muse makes them.</div></div>
+      </div>
+
+      <div class="panel" data-panel="msb" hidden>
+        <h2 id="msbTitle">Exchange dashboard</h2>
+        <p class="lead">What the exchange sees when a Muse customer locks a rate. Staff enter the pickup code at the counter to complete it, which is when FXConnect earns its 10 bps.</p>
+        <div class="kpis" id="kpis"></div>
+        <div class="bookings" id="bookings"><div class="empty">No locks yet. Lock a rate in the chat to see it arrive here.</div></div>
+        <p class="note">Billing rule: 10 bps of the CAD amount, charged only on completed pickups. Locks that expire or are cancelled cost the exchange nothing.</p>
+      </div>
+
+      <div class="panel" data-panel="net" hidden>
+        <h2>Sample network: 10 Toronto exchanges</h2>
+        <p class="lead">Fictional businesses. Each publishes its own CAD/USD spread, hours and cash on hand to FXConnect. Reference mid-market rate in this demo: <strong id="midTxt"></strong> (illustrative).</p>
+        <div class="tablewrap"><table id="netTable"></table></div>
+        <p class="note">Distances are from the customer's stated location. Status is at the simulated time in the phone.</p>
+      </div>
+
+      <div class="panel" data-panel="try" hidden>
+        <h2>Customer messages to try</h2>
+        <p class="lead">Tap one to send it as the customer, or type your own. Muse understands amounts, CAD→USD or USD→CAD, a location, and follow-ups like "lock option 2".</p>
+        <div class="scenarios" id="scen"></div>
+        <p class="note">Rules shown in the demo: locks run C$100 to C$9,000, last until the exchange closes, and need government ID at pickup. No payment is taken in WhatsApp.</p>
+      </div>
+    </section>
+  </div>
+
+  <footer class="foot">Demo only. Exchange names, rates, hours and cash levels are invented. A live version needs Muse available in Canada with FXConnect approved as a connector, and each exchange publishing rates to FXConnect. FXConnect never holds customer funds; the exchange completes the transaction at its counter.</footer>
+</div>
+
+<script>
+(function(){
+const MID = 0.7250;            // CAD -> USD reference (illustrative)
+const LOCK_BUFFER = 0.0010;    // 10 bps buffer on locked quote
+const FEE_BPS = 10;
+const MSBS = [
+  {id:"maple",  name:"Maple Leaf Currency",     area:"Union Station",      addr:"65 Front St W",        km:0.3, open:9,  close:19, spread:0.0120, usd:42000, cad:60000},
+  {id:"harbour",name:"Harbourfront Exchange",   area:"Queens Quay",        addr:"207 Queens Quay W",    km:1.1, open:10, close:18, spread:0.0095, usd:18000, cad:30000},
+  {id:"bay",    name:"Bay Street FX",           area:"Financial District", addr:"181 Bay St",           km:0.6, open:8.5,close:17.5,spread:0.0085, usd:26000, cad:40000},
+  {id:"kens",   name:"Kensington Money Corner", area:"Kensington Market",  addr:"240 Augusta Ave",      km:2.4, open:10, close:18, spread:0.0110, usd:9000,  cad:15000},
+  {id:"yonge",  name:"Yonge & Dundas Exchange", area:"Dundas Square",      addr:"10 Dundas St E",       km:1.5, open:9,  close:21, spread:0.0160, usd:55000, cad:70000},
+  {id:"north",  name:"Northstar FX",            area:"Bloor-Yorkville",    addr:"55 Bloor St W",        km:3.6, open:9.5,close:18, spread:0.0080, usd:1200,  cad:20000},
+  {id:"lake",   name:"Lakeshore Currency",      area:"Liberty Village",    addr:"85 Hanna Ave",         km:3.1, open:10, close:17, spread:0.0105, usd:14000, cad:22000},
+  {id:"china",  name:"Spadina Exchange House",  area:"Chinatown",          addr:"318 Spadina Ave",      km:1.9, open:9,  close:19, spread:0.0098, usd:21000, cad:35000},
+  {id:"pier",   name:"Pearson Arrivals FX",     area:"Airport (T1)",       addr:"Toronto Pearson T1",   km:24.8,open:5,  close:23, spread:0.0350, usd:90000, cad:120000},
+  {id:"dist",   name:"Distillery Money Shop",   area:"Distillery District",addr:"55 Mill St",           km:2.2, open:8,  close:11, spread:0.0090, usd:16000, cad:25000}
+];
+const NOW_START = 11 + 20/60;
+
+const $ = id => document.getElementById(id);
+const msgs=$("msgs"), qr=$("qr"), input=$("input");
+let S, simTime, timers=[];
+
+function reset(){
+  timers.forEach(clearTimeout); timers=[];
+  S = {stage:"start", amount:2000, from:"CAD", to:"USD", area:"Union Station", results:[], all:[], chosen:null, lock:null, bookings:[], logs:[], step:null};
+  simTime = NOW_START;
+  msgs.innerHTML='<div class="day">TODAY</div>';
+  $("log").innerHTML='<div class="empty">Send the first message in the chat. Calls appear here as Muse makes them.</div>';
+  $("logCount").textContent="0";
+  setFlow(null); renderDash(); renderNet();
+  setQR(["Best rate for C$2,000 to USD near Union Station, pick up today","I have US$800, want CAD near Dundas Square","How does this work?"]);
+  tick();
+}
+
+/* ---------- helpers ---------- */
+const fmt = (n,d=2)=>n.toLocaleString("en-CA",{minimumFractionDigits:d,maximumFractionDigits:d});
+const money = (cur,n)=> (cur==="CAD"?"C$":"US$")+fmt(n);
+const hhmm = h=>{const H=Math.floor(h), M=Math.round((h-H)*60); const ap=H>=12?"pm":"am"; const h12=((H+11)%12)+1; return h12+(M?":"+String(M).padStart(2,"0"):"")+" "+ap;};
+const clock = h=>{const H=Math.floor(h), M=Math.floor((h-H)*60); return String(H).padStart(2,"0")+":"+String(M).padStart(2,"0");};
+function tick(){ $("clock").textContent=clock(simTime); }
+function advance(min){ simTime+=min/60; tick(); }
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function later(fn,ms){const t=setTimeout(fn,ms); timers.push(t);}
+function scroll(){ msgs.scrollTop=msgs.scrollHeight; }
+
+function bubble(side, html){
+  const d=document.createElement("div"); d.className="b "+side;
+  d.innerHTML=html+'<span class="t">'+clock(simTime)+'</span>';
+  msgs.appendChild(d); scroll(); return d;
+}
+function typing(){ const d=document.createElement("div"); d.className="typing"; d.innerHTML="<i></i><i></i><i></i>"; msgs.appendChild(d); scroll(); return d; }
+function toolLine(text){ const d=document.createElement("div"); d.className="tool"; d.innerHTML='<span class="dot"></span>'+text; msgs.appendChild(d); scroll(); return d; }
+function setQR(list){ qr.innerHTML=""; list.forEach(t=>{const b=document.createElement("button"); b.type="button"; b.textContent=t; b.onclick=()=>send(t); qr.appendChild(b);}); }
+function setFlow(step){ document.querySelectorAll("#flow span").forEach(s=>s.classList.toggle("on", s.dataset.step===step)); }
+
+function logCall(fn, req, res){
+  if(!S.logs.length) $("log").innerHTML="";
+  S.logs.push(fn);
+  const e=document.createElement("div"); e.className="entry";
+  e.innerHTML='<div class="eh"><span class="fn">fxconnect.'+fn+'</span><span class="ms">'+clock(simTime)+' · '+(60+Math.floor(Math.random()*140))+' ms</span></div>'+
+   '<div class="lbl">Muse sends</div><pre>'+esc(JSON.stringify(req,null,2))+'</pre><div class="lbl">FXConnect returns</div><pre>'+esc(JSON.stringify(res,null,2))+'</pre>';
+  $("log").prepend(e); $("logCount").textContent=S.logs.length; setFlow(fn==="find_exchanges"?"find":fn==="compare_rates"?"compare":fn==="check_cash"?"cash":fn==="lock_rate"?"lock":"pickup");
+}
+
+/* Muse response with typing + tool lines */
+function muse(steps, done){
+  let delay=350;
+  steps.forEach(st=>{
+    later(()=>{
+      if(st.tool){ const tl=toolLine(st.tool); later(()=>{tl.classList.add("done"); tl.innerHTML='<span class="dot"></span>'+st.toolDone; if(st.log) st.log();}, 700); }
+      else { const ty=typing(); later(()=>{ty.remove(); advance(0.3); bubble("in", st.html);}, st.wait||800); }
+    }, delay);
+    delay += st.tool ? 1000 : (st.wait||800)+250;
+  });
+  later(()=>{ if(done) done(); }, delay);
+}
+
+/* ---------- pricing ---------- */
+function quote(m, amount, from){
+  const isOpen = simTime>=m.open && simTime < m.close-0.5;
+  let out, rate, lockOut, lockRate, needCash, have;
+  if(from==="CAD"){ rate=MID*(1-m.spread); out=amount*rate; lockRate=MID*(1-m.spread-LOCK_BUFFER); lockOut=amount*lockRate; needCash=lockOut; have=m.usd; }
+  else { rate=(1/MID)*(1-m.spread); out=amount*rate; lockRate=(1/MID)*(1-m.spread-LOCK_BUFFER); lockOut=amount*lockRate; needCash=lockOut; have=m.cad; }
+  const cashOk = have>=needCash;
+  const cadAmt = from==="CAD"?amount:lockOut;
+  return {m, isOpen, cashOk, rate, out, lockRate, lockOut, cadAmt, status: !isOpen?"closed":!cashOk?"low cash":"available"};
+}
+
+/* ---------- parsing ---------- */
+function parse(t){
+  const s=t.toLowerCase();
+  const r={};
+  const am=s.replace(/,/g,"").match(/(\d+(?:\.\d+)?)\s*(k)?/);
+  if(am){ r.amount=parseFloat(am[1])*(am[2]?1000:1); }
+  if(/(us\$|usd|us dollars?|american)/.test(s) && /(to|into|for|want|get)\s*(c\$|cad|canadian)/.test(s)) r.from="USD";
+  else if(/^.*(i have|got)\s*(us\$|usd|\$?\d+\s*(usd|us))/.test(s)) r.from="USD";
+  else if(/(c\$|cad|canadian)/.test(s) || /(to|into|for)\s*(usd|us\$|us dollars?)/.test(s)) r.from="CAD";
+  const near=t.match(/near\s+([A-Za-z0-9 &'.-]+?)(?:,|\.|\bpick|\btoday|\bnow|$)/i);
+  if(near) r.area=near[1].trim();
+  return r;
+}
+
+/* ---------- conversation ---------- */
+function send(text){
+  text=text.trim(); if(!text) return;
+  advance(0.5); bubble("out", esc(text)); input.value=""; setQR([]);
+  route(text);
+}
+
+function route(text){
+  const s=text.toLowerCase(), p=parse(text);
+  if(/how does|what is|explain|help/.test(s)) return explain();
+  if(S.stage==="confirm"){
+    if(/^(yes|y|confirm|lock it|ok|do it|sure)/.test(s)) return confirmLock();
+    if(/no|cancel|back/.test(s)) { S.stage="results"; return muse([{html:"No problem, nothing is locked. Pick another option or change the amount."}], ()=>offerQR()); }
+  }
+  if(S.stage==="locked"){
+    if(/remind/.test(s)) return reminder(s);
+    if(/direction|where|map|address/.test(s)) return directions();
+    if(/cancel/.test(s)) return cancelLock();
+  }
+  if((S.stage==="results"||S.stage==="locked") && /(lock|book|reserve|option|take|choose|go with)/.test(s)){
+    const n = s.match(/\b([1-9]|10)\b/) || (s.match(/first|one/)?["","1"]: s.match(/second|two/)?["","2"]: s.match(/third|three/)?["","3"]:null);
+    if(S.stage==="locked") return muse([{html:"You already have an active lock with <strong>"+S.lock.q.m.name+"</strong>. Say <em>cancel my lock</em> first if you want a different exchange."}],()=>lockedQR());
+    return askConfirm(n?parseInt(n[1],10):1);
+  }
+  if(S.stage==="results" && /(nearest|closest|near me|distance)/.test(s)) return showSorted("km");
+  if(S.stage==="results" && /(all|every|10|show more|full list)/.test(s)) return showAll();
+  if(p.amount || p.from || /rate|exchange|change|convert|usd|cad|search/.test(s)){
+    if(p.amount) S.amount=p.amount;
+    if(p.from){ S.from=p.from; S.to=p.from==="CAD"?"USD":"CAD"; }
+    if(p.area) S.area=p.area;
+    return search();
+  }
+  muse([{html:"I can find the best place in Toronto to exchange cash and hold the rate for you. Tell me the amount and which way, e.g. <em>C$1,500 to USD near Union Station</em>."}],()=>setQR(["C$1,500 to USD near Union Station","US$500 to CAD near Chinatown"]));
+}
+
+function explain(){
+  muse([{html:"Here's how it works:<br>1. Tell me how much you want to exchange and where.<br>2. I check exchanges on the <strong>FXConnect</strong> network and show what you'd actually receive.<br>3. Pick one and I'll <strong>lock the rate</strong> until they close today.<br>4. Show your ID and pickup code at the counter. You pay nothing extra, and no money moves in WhatsApp."}],
+    ()=>setQR(["Best rate for C$2,000 to USD near Union Station, pick up today"]));
+}
+
+function search(){
+  if(S.from==="CAD" && (S.amount<100||S.amount>9000) || S.from==="USD" && (S.amount<75||S.amount>6500)){
+    const capped = S.from==="CAD"?Math.min(Math.max(S.amount,100),9000):Math.min(Math.max(S.amount,75),6500);
+    return muse([{html:"Rate locks through FXConnect run from "+(S.from==="CAD"?"C$100 to C$9,000":"US$75 to US$6,500")+" per pickup. Want me to search for <strong>"+money(S.from,capped)+"</strong> instead?"}],()=>setQR(["Yes, search "+money(S.from,capped).replace(".00","")+" to "+S.to]));
+  }
+  S.all = MSBS.map(m=>({...quote(m,S.amount,S.from), km: S.area.toLowerCase().includes("union")? m.km : distFor(m)}));
+  S.all.forEach(q=>q.m=Object.assign({},q.m,{km:q.km}));
+  const open=S.all.filter(q=>q.isOpen), avail=open.filter(q=>q.cashOk);
+  S.results = avail.slice().sort((a,b)=>b.lockOut-a.lockOut);
+  const top=S.results.slice(0,3);
+  renderNet();
+  muse([
+    {tool:"Muse is using FXConnect · searching exchanges near "+esc(S.area), toolDone:"FXConnect · 10 exchanges found",
+      log:()=>logCall("find_exchanges",{near:S.area,city:"Toronto",pickup:"today",radius_km:30},{count:10,open_now:open.length,exchanges:S.all.map(q=>({id:q.m.id,name:q.m.name,km:q.m.km,closes:hhmm(q.m.close),status:q.isOpen?"open":"closed"}))})},
+    {tool:"Comparing "+S.from+" → "+S.to+" quotes", toolDone:"FXConnect · quotes compared",
+      log:()=>logCall("compare_rates",{amount:S.amount,from:S.from,to:S.to,exchanges:open.map(q=>q.m.id),include_lock_buffer:true},{mid_reference:S.from==="CAD"?MID:+(1/MID).toFixed(4),quotes:open.slice().sort((a,b)=>b.lockOut-a.lockOut).map(q=>({id:q.m.id,locked_rate:+q.lockRate.toFixed(4),you_receive:+q.lockOut.toFixed(2),currency:S.to}))})},
+    {tool:"Checking cash on hand", toolDone:"FXConnect · cash checked",
+      log:()=>logCall("check_cash",{currency:S.to,amount:+(top[0]?top[0].lockOut:0).toFixed(2),exchanges:open.map(q=>q.m.id)},{available:avail.map(q=>q.m.id),insufficient:open.filter(q=>!q.cashOk).map(q=>q.m.id)})},
+    {wait:1100, html:offersHTML(top)}
+  ], ()=>{S.stage="results"; offerQR();});
+}
+
+function distFor(m){ // rough re-centre for other areas
+  const a=S.area.toLowerCase();
+  const hit=MSBS.find(x=>a.includes(x.area.toLowerCase().split(" ")[0]));
+  if(!hit) return m.km;
+  return +(Math.abs(m.km-hit.km)+ (m.id===hit.id?0.2:0.6)).toFixed(1);
+}
+
+function offersHTML(list){
+  const closed=S.all.filter(q=>!q.isOpen).length, low=S.all.filter(q=>q.isOpen&&!q.cashOk).length;
+  let h="I checked <strong>10 exchanges</strong> on FXConnect for <strong>"+money(S.from,S.amount)+" → "+S.to+"</strong>. "+closed+" "+(closed===1?"is":"are")+" closed and "+low+" "+(low===1?"doesn't":"don't")+" have enough "+S.to+" cash. Best amounts you'd receive, rate locked:";
+  h+='<div class="offers">';
+  list.forEach((q,i)=>{
+    h+='<div class="offer'+(i===0?" best":"")+'">'+(i===0?'<div class="tag">Best rate</div>':'')+
+      '<div class="row1"><span>'+(i+1)+'. '+q.m.name+'</span><span class="amt">'+money(S.to,q.lockOut)+'</span></div>'+
+      '<div class="meta">'+q.m.area+' · '+q.m.km+' km · open until '+hhmm(q.m.close)+' · rate '+q.lockRate.toFixed(4)+'</div></div>';
+  });
+  h+='</div>';
+  if(list.length>1){ const diff=list[0].lockOut-list[list.length-1].lockOut; h+="Option 1 gives you <strong>"+money(S.to,diff)+" more</strong> than option "+list.length+". Want me to lock one?"; }
+  return h;
+}
+function offerQR(){ setQR(["Lock option 1","Lock option 2","Show the nearest","Show all 10"]); }
+
+function showSorted(){
+  const list=S.results.slice().sort((a,b)=>a.m.km-b.m.km).slice(0,3);
+  muse([{html:"Closest exchanges with cash available:"+'<div class="offers">'+list.map((q,i)=>'<div class="offer"><div class="row1"><span>'+q.m.name+'</span><span class="amt">'+money(S.to,q.lockOut)+'</span></div><div class="meta">'+q.m.km+' km · '+q.m.area+' · until '+hhmm(q.m.close)+'</div></div>').join("")+'</div>'+"The best-rate option is still <strong>"+S.results[0].m.name+"</strong>. Which one should I lock?"}],
+   ()=>{ S.results = S.results.slice().sort((a,b)=>a.m.km-b.m.km); setQR(["Lock option 1","Lock option 2","Lock option 3"]); });
+}
+function showAll(){
+  const list=S.all.slice().sort((a,b)=>b.lockOut-a.lockOut);
+  let h="All 10 FXConnect exchanges for "+money(S.from,S.amount)+":<div class='offers'>";
+  list.forEach(q=>{ h+='<div class="offer"><div class="row1"><span>'+q.m.name+'</span><span class="amt">'+(q.status==="available"?money(S.to,q.lockOut):q.status)+'</span></div><div class="meta">'+q.m.km+' km · '+q.m.area+'</div></div>'; });
+  h+="</div>Only the ones with an amount can be locked right now.";
+  muse([{html:h}],()=>offerQR());
+}
+
+function askConfirm(n){
+  const q=S.results[n-1];
+  if(!q) return muse([{html:"I only have "+S.results.length+" exchanges available to lock right now. Pick one of those."}],()=>offerQR());
+  S.chosen=q; S.stage="confirm";
+  muse([{html:"Please confirm this lock:"+
+    '<dl class="kv"><dt>Exchange</dt><dd>'+q.m.name+'</dd><dt>You give</dt><dd>'+money(S.from,S.amount)+'</dd><dt>You receive</dt><dd>'+money(S.to,q.lockOut)+'</dd><dt>Locked rate</dt><dd>'+q.lockRate.toFixed(4)+'</dd><dt>Held until</dt><dd>'+hhmm(q.m.close-0.25)+' today</dd><dt>Fee to you</dt><dd>C$0.00</dd></dl>'+
+    "Bring government photo ID. Nothing is charged in WhatsApp. Confirm?"}], ()=>setQR(["Yes, lock it","No, go back"]));
+}
+
+function confirmLock(){
+  const q=S.chosen, code=String(100000+Math.floor(Math.random()*900000));
+  const ref="FXC-"+clock(simTime).replace(":","")+"-"+code.slice(-3);
+  S.lock={q, code, ref, amount:S.amount, from:S.from, to:S.to, until:q.m.close-0.25, status:"Locked", at:simTime};
+  S.bookings.unshift(S.lock);
+  muse([
+    {tool:"Locking rate with "+q.m.name, toolDone:"FXConnect · rate locked",
+      log:()=>{logCall("lock_rate",{exchange:q.m.id,amount:S.amount,from:S.from,to:S.to,quoted_rate:+q.lockRate.toFixed(4),customer:{first_name:"Amina",id_required:true},consent:"confirmed_in_chat"},{status:"locked",reference:ref,pickup_code:code,receive:+q.lockOut.toFixed(2),currency:S.to,expires:hhmm(S.lock.until),cash_reserved:true}); renderDash(); flashTab("msb");}},
+    {wait:900, html:"Done. Your rate is locked ✅<div class='code' aria-label='Pickup code'>"+code.slice(0,3)+" "+code.slice(3)+"</div>"+
+      '<dl class="kv"><dt>Collect</dt><dd>'+money(S.to,q.lockOut)+'</dd><dt>At</dt><dd>'+q.m.name+'</dd><dt>Address</dt><dd>'+q.m.addr+'</dd><dt>Before</dt><dd>'+hhmm(S.lock.until)+' today</dd><dt>Reference</dt><dd>'+ref+'</dd></dl>'+
+      "Show this code and your ID at the counter. They've set your cash aside."}
+  ], ()=>{S.stage="locked"; lockedQR();});
+}
+function lockedQR(){ setQR(["Directions","Remind me 1 hour before","Cancel my lock"]); }
+
+function directions(){
+  const q=S.lock.q;
+  muse([{html:"<strong>"+q.m.name+"</strong><br>"+q.m.addr+", Toronto<br>About "+q.m.km+" km from "+esc(S.area)+", roughly "+Math.max(4,Math.round(q.m.km*12))+" min on foot.<br>Open until "+hhmm(q.m.close)+"."}],()=>lockedQR());
+}
+function reminder(){
+  const at=S.lock.until-1;
+  muse([{html:"Okay. I'll message you here at <strong>"+hhmm(at)+"</strong> if you haven't picked up yet."}],()=>{ lockedQR(); setQR(["Directions","Cancel my lock"]); });
+}
+function cancelLock(){
+  const L=S.lock; L.status="Cancelled"; renderDash();
+  logCall("lock_rate",{action:"cancel",reference:L.ref},{status:"cancelled",cash_released:true,charge_to_exchange:0});
+  muse([{html:"Your lock with "+L.q.m.name+" is cancelled and their cash is released. No charge to anyone. Want me to search again?"}],()=>{S.stage="results"; S.lock=null; setQR(["Lock option 2","Search again"]);});
+}
+
+/* exchange side */
+function redeem(ref, entered){
+  const L=S.bookings.find(b=>b.ref===ref); if(!L||L.status!=="Locked") return;
+  if(entered.replace(/\s/g,"")!==L.code){ const el=document.querySelector('[data-err="'+ref+'"]'); if(el) el.textContent="Code doesn't match. Check the customer's screen."; return; }
+  advance(48);
+  L.status="Completed"; L.doneAt=simTime; renderDash();
+  logCall("confirm_pickup",{reference:L.ref,code_entered:"******",amount_completed:L.amount,currency:L.from,id_checked:true},{status:"completed",rate_honoured:+L.q.lockRate.toFixed(4),fxconnect_fee_cad:+(L.q.cadAmt*FEE_BPS/10000).toFixed(2),billing:"monthly invoice"});
+  muse([{html:"Pickup confirmed at <strong>"+L.q.m.name+"</strong>.<dl class='kv'><dt>You gave</dt><dd>"+money(L.from,L.amount)+"</dd><dt>You received</dt><dd>"+money(L.to,L.q.lockOut)+"</dd><dt>Rate honoured</dt><dd>"+L.q.lockRate.toFixed(4)+"</dd></dl>Safe travels! Ask me any time you need cash again."}],()=>{S.stage="done"; setQR(["Best rate for C$2,000 to USD near Union Station, pick up today","US$500 to CAD near Chinatown"]);});
+  later(()=>flashTab("log"),200);
+}
+
+function renderDash(){
+  const name = S && S.lock ? S.lock.q.m.name : (S&&S.bookings[0]?S.bookings[0].q.m.name:"Your exchange");
+  $("msbTitle").textContent = name+" · FXConnect dashboard";
+  const b=S?S.bookings:[];
+  const done=b.filter(x=>x.status==="Completed"), active=b.filter(x=>x.status==="Locked");
+  const vol=done.reduce((s,x)=>s+x.q.cadAmt,0);
+  $("kpis").innerHTML=
+    kpi("Active locks", active.length)+kpi("Completed today", done.length)+kpi("Completed volume", "C$"+fmt(vol,0))+kpi("FXConnect fee (10 bps)", "C$"+fmt(vol*FEE_BPS/10000));
+  $("bkCount").textContent=active.length;
+  if(!b.length){ $("bookings").innerHTML='<div class="empty">No locks yet. Lock a rate in the chat to see it arrive here.</div>'; return; }
+  $("bookings").innerHTML = b.map(L=>{
+    const pill = L.status==="Locked"?'<span class="pill warn">Locked · awaiting pickup</span>':L.status==="Completed"?'<span class="pill ok">Completed</span>':'<span class="pill off">Cancelled</span>';
+    const fee = L.q.cadAmt*FEE_BPS/10000;
+    const right = L.status==="Locked"
+      ? '<div class="redeem"><input id="code-'+L.ref+'" placeholder="Pickup code" aria-label="Pickup code for '+L.ref+'" inputmode="numeric"><button class="btn primary" data-redeem="'+L.ref+'">Complete pickup</button><button class="btn" data-fill="'+L.ref+'" title="Fill the code shown in the customer chat">Use customer\'s code</button></div><div data-err="'+L.ref+'" style="color:var(--bad);font-size:12px;grid-column:1/-1"></div>'
+      : '<div class="bm">'+(L.status==="Completed"?"Fee C$"+fmt(fee):"No charge")+'</div>';
+    return '<div class="booking"><div><div class="bt">Amina · '+money(L.from,L.amount)+' → '+money(L.to,L.q.lockOut)+'</div><div class="bm">'+L.ref+' · rate '+L.q.lockRate.toFixed(4)+' · '+L.q.m.name+' · held until '+hhmm(L.until)+'</div><div style="margin-top:6px">'+pill+'</div></div>'+right+'</div>';
+  }).join("");
+}
+function kpi(k,v){return '<div class="kpi"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
+
+function renderNet(){
+  $("midTxt").textContent="1 CAD = "+MID.toFixed(4)+" USD";
+  const amt = S?S.amount:2000, from=S?S.from:"CAD", to=S?S.to:"USD";
+  const rows = MSBS.map(m=>{const km=(S&&S.all.length)?(S.all.find(q=>q.m.id===m.id)||{km:m.km}).km:m.km; return Object.assign(quote(m,amt,from),{km});}).sort((a,b)=>b.lockOut-a.lockOut);
+  const chosen = S&&S.lock?S.lock.q.m.id:null;
+  $("netTable").innerHTML='<thead><tr><th>Exchange</th><th>Area</th><th class="num">km</th><th class="num">Spread</th><th>Hours</th><th class="num">'+to+' cash</th><th class="num">You get for '+money(from,amt).replace(".00","")+'</th><th>Status</th></tr></thead><tbody>'+
+    rows.map(q=>'<tr'+(q.m.id===chosen?' class="hl"':'')+'><td><strong>'+q.m.name+'</strong></td><td>'+q.m.area+'</td><td class="num">'+q.km+'</td><td class="num">'+(q.m.spread*100).toFixed(2)+'%</td><td>'+hhmm(q.m.open)+'–'+hhmm(q.m.close)+'</td><td class="num">'+fmt(to==="USD"?q.m.usd:q.m.cad,0)+'</td><td class="num">'+money(to,q.lockOut)+'</td><td>'+
+      (q.status==="available"?'<span class="pill ok">Available</span>':q.status==="closed"?'<span class="pill off">Closed</span>':'<span class="pill warn">Low cash</span>')+'</td></tr>').join("")+'</tbody>';
+}
+
+/* tabs */
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+function showTab(t){
+  document.querySelectorAll(".tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t?"true":"false"));
+  document.querySelectorAll(".panel").forEach(p=>p.hidden = p.dataset.panel!==t);
+}
+function flashTab(t){ showTab(t); }
+
+document.addEventListener("click",e=>{
+  const r=e.target.closest("[data-redeem]"); if(r){ const ref=r.dataset.redeem; redeem(ref, ($("code-"+ref)||{}).value||""); }
+  const f=e.target.closest("[data-fill]"); if(f){ const L=S.bookings.find(b=>b.ref===f.dataset.fill); const el=$("code-"+f.dataset.fill); if(L&&el) el.value=L.code; }
+});
+$("compose").addEventListener("submit",e=>{e.preventDefault(); send(input.value);});
+$("restart").addEventListener("click",reset);
+
+const SCEN=["Best rate for C$2,000 to USD near Union Station, pick up today","I need US dollars for my trip, C$3,500, near Chinatown","I have US$800, want CAD near Dundas Square","Change C$12,000 to USD","How does this work?"];
+$("scen").innerHTML="";
+SCEN.forEach(t=>{const b=document.createElement("button"); b.className="btn"; b.textContent=t; b.onclick=()=>send(t); $("scen").appendChild(b);});
+
+reset();
+})();
+</script>
+
+</body></html>
